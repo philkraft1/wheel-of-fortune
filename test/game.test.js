@@ -58,6 +58,7 @@ test('a full turn pays, then a solve banks the score', () => {
   const solved = game.dispatch({ type: 'SOLVE', id: 'alex', name: 'Alex', phrase: 'zxq-plane!!' });
   assert.equal(solved.state.status, 'solved');
   assert.equal(solved.state.players[0].total, 500);
+  assert.equal(solved.state.players[0].solved, 1);
   assert.equal(solved.state.players[0].round, 0);
   assert.equal(publicView(solved.state).phrase, 'ZXQ PLANE');
   assert.equal(solved.effects[0].type, 'clear');
@@ -100,6 +101,34 @@ test('free play keeps the turn after a miss, and vowels cost 250', () => {
   const bought = paid.dispatch({ type: 'GUESS', id: 'alex', name: 'Alex', letter: 'O' });
   assert.equal(bought.state.status, 'solved');
   assert.equal(bought.state.won, 750);
+});
+
+test('the leaderboard ranks by total points, then puzzles solved', () => {
+  const game = createGame(at(0));
+  game.dispatch({ type: 'SET_PUZZLE', category: 'Sound', puzzle: 'TOOT' });
+  game.dispatch({ type: 'JOIN', id: 'sam', name: 'Sam' });
+  game.dispatch({ type: 'JOIN', id: 'alex', name: 'Alex' });
+  land(game, game.dispatch({ type: 'START' }));
+  game.dispatch({ type: 'GUESS', id: 'sam', name: 'Sam', letter: 'T' });
+  const first = game.dispatch({ type: 'SOLVE', id: 'sam', name: 'Sam', phrase: 'toot' });
+  assert.equal(first.state.players.find((player) => player.id === 'sam').solved, 1);
+  assert.equal(first.state.players.find((player) => player.id === 'alex').solved, 0);
+
+  game.dispatch({ type: 'SET_PUZZLE', category: 'Sound', puzzle: 'BEEP' });
+  const next = game.dispatch({ type: 'START' });
+  assert.equal(next.state.players.find((player) => player.id === 'sam').total, 1000);
+  assert.equal(next.state.players.find((player) => player.id === 'sam').solved, 1);
+  const skipped = game.dispatch({ type: 'SKIP' });
+  assert.equal(skipped.state.players[skipped.state.turn].id, 'alex');
+  const second = game.dispatch({ type: 'FORCE_SOLVE' });
+  const board = hostView(second.state).leaderboard;
+  assert.equal(board[0].name, 'Sam');
+  assert.equal(board[0].rank, 1);
+  assert.equal(board[0].total, 1000);
+  assert.equal(board[0].solved, 1);
+  assert.equal(board[1].name, 'Alex');
+  assert.equal(board[1].solved, 1);
+  assert.equal(board[1].gap, 1000);
 });
 
 test('the overlay state never includes the unsolved puzzle', async () => {

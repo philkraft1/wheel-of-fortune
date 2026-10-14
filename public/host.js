@@ -4,6 +4,7 @@ const answer = document.getElementById('answer');
 const now = document.getElementById('now');
 const tiktok = document.getElementById('tiktok');
 const players = document.getElementById('players');
+const leaderboard = document.getElementById('leaderboard');
 const log = document.getElementById('log');
 const heard = document.getElementById('heard');
 const letters = document.getElementById('letters');
@@ -44,7 +45,7 @@ document.getElementById('start').addEventListener('click', () => post({ action: 
 document.getElementById('skip').addEventListener('click', () => post({ action: 'skip' }));
 document.getElementById('force').addEventListener('click', () => post({ action: 'force' }));
 document.getElementById('reset').addEventListener('click', () => {
-  if (window.confirm('Reset scores and clear the round?')) post({ action: 'reset' });
+  if (window.confirm('Reset the leaderboard and clear the round?')) post({ action: 'reset' });
 });
 document.getElementById('disconnect').addEventListener('click', () => post({ action: 'disconnect' }));
 document.getElementById('sound').addEventListener('change', (event) => {
@@ -109,6 +110,7 @@ function render() {
     document.getElementById('prize').value = state.prize;
   }
   renderAnswer();
+  renderLeaderboard();
   players.replaceChildren();
   if (!state.players.length) {
     const empty = document.createElement('p');
@@ -135,6 +137,60 @@ function render() {
     if (entry.handled) item.classList.add('hit');
     heard.appendChild(item);
   }
+}
+
+function renderLeaderboard() {
+  leaderboard.replaceChildren();
+  const rows = state.leaderboard || [];
+  if (!rows.length) {
+    const empty = document.createElement('p');
+    empty.className = 'empty';
+    empty.textContent = 'Nobody has joined yet. Totals and solves will stack up here.';
+    leaderboard.appendChild(empty);
+    return;
+  }
+  for (const row of rows) {
+    const item = document.createElement('li');
+    item.className = `standing place-${row.rank}`;
+    const rank = document.createElement('span');
+    rank.className = 'rank';
+    rank.textContent = String(row.rank);
+    const who = document.createElement('div');
+    const name = document.createElement('b');
+    name.textContent = row.name;
+    if (row.id === state.currentPlayerId && state.status === 'playing') {
+      const tag = document.createElement('span');
+      tag.className = 'up-now';
+      tag.textContent = 'Up now';
+      name.appendChild(tag);
+    }
+    const detail = document.createElement('small');
+    detail.textContent = standingLine(row);
+    who.append(name, detail);
+    const points = document.createElement('div');
+    points.className = 'points';
+    const pointsValue = document.createElement('strong');
+    pointsValue.textContent = money(row.total);
+    const pointsLabel = document.createElement('small');
+    pointsLabel.textContent = 'Total';
+    points.append(pointsValue, pointsLabel);
+    const solves = document.createElement('div');
+    solves.className = 'solves';
+    const solvesValue = document.createElement('strong');
+    solvesValue.textContent = String(row.solved);
+    const solvesLabel = document.createElement('small');
+    solvesLabel.textContent = row.solved === 1 ? 'Puzzle' : 'Puzzles';
+    solves.append(solvesValue, solvesLabel);
+    item.append(rank, who, points, solves);
+    leaderboard.appendChild(item);
+  }
+}
+
+function standingLine(row) {
+  if (row.rank === 1 && row.tied) return 'Tied for the lead';
+  if (row.rank === 1) return row.total > 0 || row.solved > 0 ? 'In the lead' : 'Even so far';
+  if (row.gap > 0) return `${money(row.gap)} behind`;
+  return 'Tied on points';
 }
 
 function renderAnswer() {
