@@ -17,11 +17,13 @@ The host desk can show the answer. Put only the overlay link in TikTok LIVE Stud
 
 ## TikTok LIVE Studio
 
-1. Add a source and choose Link.
-2. Paste `http://127.0.0.1:8787/overlay`.
-3. Place it in the upper-middle of a vertical scene so TikTok's buttons do not cover the board.
+1. On the host desk, click Open overlay window.
+2. In LIVE Studio, add a source and choose Window. Pick the window titled Wheel Overlay.
+3. Fit that window in the upper half of the phone preview. Leave the bottom clear for chat.
 4. Turn on the source's audio if you want the wheel ticks.
 5. On the host desk, enter your TikTok username and connect while you are LIVE.
+
+LIVE Studio's Link source rejects `http://127.0.0.1`. Use the overlay window instead.
 
 You can practice before going live. The host desk sends `/join`, `/guess`, and solves without a live chat.
 

@@ -19,6 +19,10 @@ document.getElementById('copy-url').addEventListener('click', async () => {
   document.getElementById('copy-url').textContent = 'Copied';
 });
 
+document.getElementById('open-overlay').addEventListener('click', () => {
+  window.open(overlayUrl, 'wof-overlay', 'popup=yes,width=480,height=900');
+});
+
 for (const letter of 'ABCDEFGHIJKLMNOPQRSTUVWXYZ') {
   const button = document.createElement('button');
   button.type = 'button';

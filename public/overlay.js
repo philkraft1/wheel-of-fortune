@@ -6,6 +6,9 @@ const board = document.getElementById('board');
 const vowels = document.getElementById('vowels');
 const called = document.getElementById('called');
 const players = document.getElementById('players');
+const popup = document.getElementById('turn-popup');
+const popupPhoto = document.getElementById('popup-photo');
+const popupName = document.getElementById('popup-name');
 const log = document.getElementById('log');
 const winner = document.getElementById('winner');
 const canvas = document.getElementById('wheel');
@@ -28,6 +31,8 @@ let rotation = 0;
 let drawn = false;
 let audio;
 let tickTimers = [];
+let announcedId = '';
+let popupTimer;
 let flashTimer;
 
 const source = new EventSource('/events');
@@ -51,7 +56,8 @@ function render(next) {
   status.textContent = next.message || '';
   renderBoard(next.rows || []);
   renderCalled(next.called || []);
-  renderPlayers(next);
+  renderSeats(next);
+  renderTurn(next);
   renderLog(next.log || []);
   renderWinner(next);
   renderHub(next);
@@ -103,27 +109,84 @@ function renderCalled(letters) {
   called.textContent = consonants.length ? `Called ${consonants.join(' ')}` : 'No consonants called yet';
 }
 
-function renderPlayers(next) {
-  players.replaceChildren();
-  if (!next.players.length) {
-    const empty = document.createElement('p');
-    empty.className = 'empty-players';
-    empty.textContent = 'Waiting for /join';
-    players.appendChild(empty);
-    return;
+function renderSeats(next) {
+  const playing = next.status === 'playing';
+  const joined = next.players || [];
+  let visible = joined.slice(0, 5);
+  const currentPlayer = joined.find((player) => player.id === next.currentPlayerId);
+  if (currentPlayer && !visible.some((player) => player.id === currentPlayer.id)) {
+    visible = visible.slice(0, 4).concat(currentPlayer);
   }
-  next.players.forEach((player, index) => {
-    const card = document.createElement('article');
-    card.className = index === next.turn && next.status === 'playing' ? 'player up' : 'player';
+  players.replaceChildren();
+  for (let index = 0; index < 5; index += 1) {
+    const player = visible[index];
+    const seat = document.createElement('article');
+    seat.className = 'seat';
+    const photo = document.createElement('div');
+    photo.className = 'photo';
+    if (!player) {
+      seat.classList.add('open');
+      photo.textContent = String(index + 1);
+      const name = document.createElement('b');
+      name.textContent = 'Open';
+      seat.append(photo, name);
+      players.appendChild(seat);
+      continue;
+    }
+    if (player.id === next.currentPlayerId && playing) seat.classList.add('up');
+    paintPhoto(photo, player);
     const name = document.createElement('b');
     name.textContent = player.name;
-    const round = document.createElement('strong');
-    round.textContent = money(next.status === 'solved' ? player.total : player.round);
-    const total = document.createElement('small');
-    total.textContent = next.status === 'solved' ? 'Banked' : `Total ${money(player.total)}`;
-    card.append(name, round, total);
-    players.appendChild(card);
-  });
+    seat.append(photo, name);
+    players.appendChild(seat);
+  }
+}
+
+function paintPhoto(node, player) {
+  node.replaceChildren();
+  node.style.background = portraitColor(player.name);
+  const letter = document.createElement('span');
+  letter.textContent = initial(player.name);
+  node.appendChild(letter);
+  if (!player.avatar) return;
+  const image = document.createElement('img');
+  image.alt = '';
+  image.referrerPolicy = 'no-referrer';
+  image.src = player.avatar;
+  image.addEventListener('error', () => image.remove());
+  node.appendChild(image);
+}
+
+function renderTurn(next) {
+  const player = next.status === 'playing' ? next.players[next.turn] : null;
+  if (!player) {
+    announcedId = '';
+    return;
+  }
+  if (player.id === announcedId) return;
+  announcedId = player.id;
+  popupName.textContent = player.name;
+  paintPhoto(popupPhoto, player);
+  popup.hidden = false;
+  popup.classList.remove('show');
+  void popup.offsetWidth;
+  popup.classList.add('show');
+  clearTimeout(popupTimer);
+  popupTimer = setTimeout(() => {
+    popup.classList.remove('show');
+    popup.hidden = true;
+  }, 2600);
+}
+
+function initial(name) {
+  const letter = String(name || '?').trim().charAt(0).toUpperCase();
+  return /[A-Z0-9]/.test(letter) ? letter : '?';
+}
+
+function portraitColor(name) {
+  const tones = ['#0f766e', '#c2410c', '#1d4ed8', '#a16207', '#be185d'];
+  const code = Array.from(String(name || '')).reduce((sum, char) => sum + char.charCodeAt(0), 0);
+  return tones[code % tones.length];
 }
 
 function renderLog(entries) {
@@ -313,6 +376,7 @@ function playSpin(ms) {
 }
 
 function tone(freq, duration, type, gain) {
+  if (!Number.isFinite(freq) || !Number.isFinite(duration)) return;
   const context = audioContext();
   if (!context) return;
   const osc = context.createOscillator();

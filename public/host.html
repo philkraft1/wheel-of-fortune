@@ -22,8 +22,11 @@
     <section class="card">
       <h2>Put this on stream</h2>
       <p id="overlay-url" class="url"></p>
-      <button id="copy-url" type="button">Copy overlay link</button>
-      <p class="hint">In TikTok LIVE Studio: Add source, choose Link, paste the overlay link, and place it in the upper-middle of a vertical scene. Turn source audio on if you want the wheel ticks.</p>
+      <div class="row">
+        <button id="copy-url" type="button">Copy overlay link</button>
+        <button id="open-overlay" type="button">Open overlay window</button>
+      </div>
+      <p class="hint">LIVE Studio rejects this local link. Use Open overlay window, then in LIVE Studio choose Add source, Window, and pick Wheel Overlay. Fit it in the upper half of the phone preview and leave the bottom clear for chat.</p>
       <label class="check"><input id="transparent" type="checkbox"> Transparent background, for laying the game over your camera</label>
       <label class="check"><input id="sound" type="checkbox" checked> Wheel sounds</label>
     </section>

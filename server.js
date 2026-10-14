@@ -81,7 +81,15 @@ export function createApp() {
     if (heard.length > 40) heard.shift();
   }
 
-  function handleComment({ id, name, comment }) {
+  function profilePicture(user) {
+    if (!user || typeof user !== 'object') return '';
+    if (typeof user.profilePictureUrl === 'string') return user.profilePictureUrl;
+    const list = user.profilePicture?.url || user.profilePicture?.urls || user.avatarLarge?.urlList;
+    if (!Array.isArray(list)) return '';
+    return list.find((item) => typeof item === 'string' && item.startsWith('https://')) || '';
+  }
+
+  function handleComment({ id, name, comment, avatar }) {
     const safeName = String(name || id || 'Viewer').slice(0, 40);
     const safeId = String(id || safeName);
     const text = String(comment || '');
@@ -95,15 +103,16 @@ export function createApp() {
       broadcast();
       return;
     }
+    const picture = typeof avatar === 'string' ? avatar : '';
     if (command.type === 'join') {
-      dispatch({ type: 'JOIN', id: safeId, name: safeName });
+      dispatch({ type: 'JOIN', id: safeId, name: safeName, avatar: picture });
       return;
     }
     if (command.type === 'guess') {
-      dispatch({ type: 'GUESS', id: safeId, name: safeName, letter: command.letter });
+      dispatch({ type: 'GUESS', id: safeId, name: safeName, letter: command.letter, avatar: picture });
       return;
     }
-    dispatch({ type: 'SOLVE', id: safeId, name: safeName, phrase: command.phrase });
+    dispatch({ type: 'SOLVE', id: safeId, name: safeName, phrase: command.phrase, avatar: picture });
   }
 
   async function disconnectTikTok() {
@@ -135,6 +144,7 @@ export function createApp() {
           id: data?.user?.uniqueId || 'viewer',
           name: data?.user?.nickname || data?.user?.uniqueId || 'Viewer',
           comment: data?.comment || '',
+          avatar: profilePicture(data?.user),
         });
       });
       next.on(WebcastEvent.STREAM_END, () => {
@@ -206,6 +216,7 @@ export function createApp() {
         id: body.name || 'host',
         name: body.name || 'Host',
         comment: body.comment || '',
+        avatar: body.avatar || '',
       });
       return;
     }

@@ -131,6 +131,25 @@ test('the leaderboard ranks by total points, then puzzles solved', () => {
   assert.equal(board[1].gap, 1000);
 });
 
+test('a join stores an https profile picture and drops anything else', () => {
+  const game = createGame();
+  const joined = game.dispatch({
+    type: 'JOIN',
+    id: 'alex',
+    name: 'Alex',
+    avatar: 'https://example.com/alex.jpg',
+  });
+  assert.equal(joined.state.players[0].avatar, 'https://example.com/alex.jpg');
+  assert.equal(hostView(joined.state).players[0].avatar, 'https://example.com/alex.jpg');
+  const blocked = game.dispatch({
+    type: 'JOIN',
+    id: 'sam',
+    name: 'Sam',
+    avatar: 'javascript:alert(1)',
+  });
+  assert.equal(blocked.state.players[1].avatar, '');
+});
+
 test('the overlay state never includes the unsolved puzzle', async () => {
   const { server, close } = createApp();
   server.listen(0, '127.0.0.1');
