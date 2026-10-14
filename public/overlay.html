@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex">
+  <title>Wheel of Fortune</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/overlay.css?v=2">
+</head>
+<body>
+  <main class="stage" id="stage">
+    <header class="top">
+      <p class="brand">Live Games</p>
+      <h1>Wheel of Fortune</h1>
+      <p id="category" class="category">Waiting for a puzzle</p>
+      <p id="prize" class="prize"></p>
+      <p class="help">
+        <span class="cmd" data-cmd="join">/join</span>
+        <span class="cmd" data-cmd="guess">/guess S</span>
+        <span class="cmd" data-cmd="solve">/aws-networking your answer</span>
+      </p>
+    </header>
+
+    <section class="wheel-wrap" aria-hidden="false">
+      <div class="pointer"></div>
+      <div class="wheel-disc">
+        <canvas id="wheel" width="1000" height="1000"></canvas>
+      </div>
+      <div class="hub">
+        <span id="hub-kicker">Join</span>
+        <strong id="hub-score">$0</strong>
+      </div>
+      <div id="flash" class="flash"></div>
+    </section>
+
+    <div class="status-row">
+      <p id="status" class="status">Type /join in chat to play</p>
+      <div class="clock" id="clock-wrap" hidden>
+        <span id="clock">20</span>
+        <i id="clock-bar"></i>
+      </div>
+    </div>
+
+    <section class="board-wrap">
+      <div id="board" class="board"></div>
+      <div id="vowels" class="vowels"></div>
+      <p id="called" class="called">No consonants called yet</p>
+    </section>
+
+    <section class="bottom">
+      <div id="winner" class="winner" hidden></div>
+      <div id="players" class="players"></div>
+      <ol id="log" class="log"></ol>
+    </section>
+    <div id="confetti" class="confetti"></div>
+  </main>
+  <script src="/overlay.js"></script>
+</body>
+</html>
