@@ -30,10 +30,13 @@ You can practice before going live. The host desk sends `/join`, `/guess`, and s
 ## Commands
 
 - `/join` enters the line. Viewers can join in the middle of a round.
-- `/guess S` plays one letter on that viewer's turn. Vowels cost $250 in game points.
-- `/aws-networking the whole puzzle` solves it.
+- `/spin` spins again after a correct letter. The first spin of a turn happens on its own.
+- `/guess S` plays one letter after the wheel stops. Vowels cost $250 in game points.
+- `/solve the whole puzzle` solves it.
 
-`!join`, `!guess S`, and `!aws-networking` do the same thing if a slash is filtered.
+When a player loses a turn, the wheel spins for the next player. That player has 20 seconds to guess. The timer is on the board. After a correct letter, the wheel waits until they type `/spin`.
+
+`!join`, `!spin`, `!guess S`, and `!solve` do the same thing if a slash is filtered.
 
 Points stay in the game. The prize line is whatever you want to give on stream, such as a shoutout.
 

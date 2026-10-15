@@ -9,6 +9,10 @@ const players = document.getElementById('players');
 const popup = document.getElementById('turn-popup');
 const popupPhoto = document.getElementById('popup-photo');
 const popupName = document.getElementById('popup-name');
+const indicator = document.getElementById('turn-indicator');
+const indicatorPhoto = document.getElementById('indicator-photo');
+const indicatorName = document.getElementById('indicator-name');
+const indicatorTime = document.getElementById('indicator-time');
 const log = document.getElementById('log');
 const winner = document.getElementById('winner');
 const canvas = document.getElementById('wheel');
@@ -54,6 +58,8 @@ pull();
 setInterval(pull, 700);
 
 function render(next) {
+  const solveCmd = document.querySelector('[data-cmd="solve"]');
+  if (solveCmd) solveCmd.textContent = '/solve [your answer] to solve the puzzle';
   const sig = JSON.stringify(next);
   if (sig === signature) return;
   const prior = state;
@@ -71,6 +77,7 @@ function render(next) {
   renderCalled(next.called || []);
   renderSeats(next);
   renderTurn(next);
+  renderIndicator(next);
   renderLog(next.log || []);
   renderWinner(next);
   renderHub(next);
@@ -170,6 +177,20 @@ function paintPhoto(node, player) {
   node.appendChild(image);
 }
 
+function renderIndicator(next) {
+  const player = next.status === 'playing' ? next.players[next.turn] : null;
+  const active = Boolean(player) && ['spinning', 'guess', 'turn', 'result'].includes(next.phase);
+  indicator.hidden = !active;
+  if (!active) return;
+  if (indicator.dataset.player !== player.id) {
+    indicator.dataset.player = player.id;
+    indicatorName.textContent = player.name;
+    paintPhoto(indicatorPhoto, player);
+  }
+  const timing = Boolean(next.deadline && next.clockMs);
+  indicatorTime.hidden = !timing;
+}
+
 function renderTurn(next) {
   const player = next.status === 'playing' ? next.players[next.turn] : null;
   if (!player) {
@@ -245,7 +266,7 @@ function renderHub(next) {
 }
 
 function highlightCommand(next) {
-  const hot = next.phase === 'guess' ? 'guess' : next.phase === 'bonus' || next.phase === 'solved' ? 'solve' : 'join';
+  const hot = next.phase === 'guess' ? 'guess' : next.phase === 'turn' ? 'spin' : next.phase === 'solved' ? 'solve' : 'join';
   for (const command of commands) command.classList.toggle('hot', command.dataset.cmd === hot);
 }
 
@@ -412,13 +433,28 @@ function audioContext() {
   return audio;
 }
 
+function fitStage() {
+  const scale = Math.min(window.innerWidth / 480, window.innerHeight / 900);
+  const safe = Number.isFinite(scale) && scale > 0 ? scale : 1;
+  const x = Math.max(0, (window.innerWidth - 480 * safe) / 2);
+  const y = Math.max(0, (window.innerHeight - 900 * safe) / 2);
+  stage.style.transform = `translate(${x}px, ${y}px) scale(${safe})`;
+}
+
+fitStage();
+window.addEventListener('resize', fitStage);
+
 setInterval(() => {
   if (!state?.deadline || !state.clockMs) {
     clockWrap.hidden = true;
+    indicatorTime.hidden = true;
     return;
   }
   const left = Math.max(0, state.deadline - Date.now());
+  const seconds = String(Math.ceil(left / 1000));
   clockWrap.hidden = false;
-  clock.textContent = `${Math.ceil(left / 1000)}s`;
+  clock.textContent = seconds;
   clockBar.style.transform = `scaleX(${Math.max(0, left / state.clockMs)})`;
+  indicatorTime.hidden = indicator.hidden;
+  indicatorTime.textContent = seconds;
 }, 200);

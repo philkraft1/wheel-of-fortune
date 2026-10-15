@@ -113,6 +113,10 @@ export function createApp() {
       dispatch({ type: 'JOIN', id: safeId, name: safeName, avatar: picture });
       return;
     }
+    if (command.type === 'spin') {
+      dispatch({ type: 'SPIN', id: safeId, name: safeName, avatar: picture });
+      return;
+    }
     if (command.type === 'guess') {
       dispatch({ type: 'GUESS', id: safeId, name: safeName, letter: command.letter, avatar: picture });
       return;

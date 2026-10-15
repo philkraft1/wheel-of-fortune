@@ -18,6 +18,11 @@ function land(game, result) {
   return game.dispatch(result.effects[0].action);
 }
 
+function spinAndLand(game, id, name) {
+  const spinning = game.dispatch({ type: 'SPIN', id, name });
+  return land(game, spinning);
+}
+
 test('chat commands', () => {
   assert.deepEqual(parseCommand('  /join  '), { type: 'join' });
   assert.deepEqual(parseCommand('!join please'), { type: 'join' });
@@ -26,8 +31,14 @@ test('chat commands', () => {
   assert.equal(parseCommand('/guessS').letter, 'S');
   assert.equal(parseCommand('!guess the letter m').letter, 'M');
   assert.equal(parseCommand('/guess hello').letter, '');
-  assert.equal(parseCommand('/AWS-NETWORKING fresh lemonade!').phrase, 'fresh lemonade!');
-  assert.equal(parseCommand('/aws-networking').phrase, '');
+  assert.equal(parseCommand('T').letter, 'T');
+  assert.equal(parseCommand('t').letter, 'T');
+  assert.equal(parseCommand('hi'), null);
+  assert.equal(parseCommand('/solve fresh lemonade!').phrase, 'fresh lemonade!');
+  assert.equal(parseCommand('/solve').phrase, '');
+  assert.equal(parseCommand('!solve never gonna give you up').phrase, 'never gonna give you up');
+  assert.deepEqual(parseCommand('/spin'), { type: 'spin' });
+  assert.deepEqual(parseCommand('!spin'), { type: 'spin' });
 });
 
 test('a full turn pays, then a solve banks the score', () => {
@@ -46,13 +57,16 @@ test('a full turn pays, then a solve banks the score', () => {
   assert.equal(game.getState().token, token);
   const ready = land(game, spun);
   assert.equal(ready.state.phase, 'guess');
+  assert.equal(ready.state.clockMs, 20000);
 
   game.dispatch({ type: 'GUESS', id: 'sam', name: 'Sam', letter: 'Z' });
   assert.match(game.getState().message, /wait for a turn/i);
 
   const hit = game.dispatch({ type: 'GUESS', id: 'alex', name: 'Alex', letter: 'Z' });
   assert.equal(hit.state.players[0].round, 500);
-  assert.equal(hit.state.phase, 'bonus');
+  assert.equal(hit.state.phase, 'turn');
+  assert.equal(hit.state.clockMs, 20000);
+  assert.equal(hit.effects[0].action.type, 'TIMEOUT');
   assert.equal(JSON.stringify(publicView(hit.state)).includes('PLANE'), false);
 
   const solved = game.dispatch({ type: 'SOLVE', id: 'alex', name: 'Alex', phrase: 'zxq-plane!!' });
@@ -73,7 +87,8 @@ test('bankrupt clears the round score and a wrong guess passes the turn', () => 
   land(game, game.dispatch({ type: 'START' }));
   const hit = game.dispatch({ type: 'GUESS', id: 'alex', name: 'Alex', letter: 'T' });
   assert.equal(hit.state.players[0].round, 1000);
-  const spinning = game.dispatch(hit.effects[0].action);
+  assert.equal(hit.state.phase, 'turn');
+  const spinning = game.dispatch({ type: 'SPIN', id: 'alex', name: 'Alex' });
   assert.equal(spinning.state.wedge.type, 'bankrupt');
   const after = game.dispatch(spinning.effects[0].action);
   assert.equal(after.state.players[0].round, 0);
@@ -89,7 +104,16 @@ test('free play keeps the turn after a miss, and vowels cost 250', () => {
   const missed = game.dispatch({ type: 'GUESS', id: 'alex', name: 'Alex', letter: 'S' });
   assert.equal(missed.state.phase, 'result');
   assert.equal(missed.state.turn, 0);
-  assert.equal(missed.effects[0].action.type, 'BEGIN_SPIN');
+  assert.equal(missed.effects[0].action.type, 'OFFER_TURN');
+  const kept = game.dispatch(missed.effects[0].action);
+  assert.equal(kept.state.phase, 'turn');
+  assert.equal(kept.state.clockMs, 20000);
+  assert.equal(kept.state.turn, 0);
+  const still = game.dispatch({ type: 'TIMEOUT', token: kept.state.token });
+  assert.equal(still.state.turn, 0);
+  assert.equal(still.state.phase, 'turn');
+  assert.equal(still.effects[0].action.type, 'TIMEOUT');
+  assert.doesNotMatch(still.state.message, /lost the turn|ran out of time/);
 
   const paid = createGame(at(0));
   paid.dispatch({ type: 'SET_PUZZLE', category: 'Sound', puzzle: 'TOOT' });
@@ -101,6 +125,38 @@ test('free play keeps the turn after a miss, and vowels cost 250', () => {
   const bought = paid.dispatch({ type: 'GUESS', id: 'alex', name: 'Alex', letter: 'O' });
   assert.equal(bought.state.status, 'solved');
   assert.equal(bought.state.won, 750);
+});
+
+test('landing on free play does not pass the turn when the clock runs out', () => {
+  const freeAt = WEDGES.findIndex((wedge) => wedge.type === 'free');
+  const free = createGame(at(freeAt));
+  free.dispatch({ type: 'SET_PUZZLE', category: 'Sound', puzzle: 'TOOT' });
+  free.dispatch({ type: 'JOIN', id: 'alex', name: 'Alex' });
+  free.dispatch({ type: 'JOIN', id: 'sam', name: 'Sam' });
+  const landed = land(free, free.dispatch({ type: 'START' }));
+  assert.equal(landed.state.wedge.type, 'free');
+  assert.equal(landed.state.phase, 'guess');
+  assert.equal(landed.state.turn, 0);
+  assert.match(landed.state.message, /FREE PLAY/);
+  assert.doesNotMatch(landed.state.message, /lost the turn/);
+  const stayed = free.dispatch({ type: 'TIMEOUT', token: landed.state.token });
+  assert.equal(stayed.state.turn, 0);
+  assert.equal(stayed.state.phase, 'guess');
+  assert.equal(stayed.state.players[stayed.state.turn].id, 'alex');
+  assert.equal(stayed.effects[0].action.type, 'TIMEOUT');
+  assert.doesNotMatch(stayed.state.message, /lost the turn|ran out of time/);
+
+  const cash = createGame(at(0));
+  cash.dispatch({ type: 'SET_PUZZLE', category: 'Sound', puzzle: 'TOOT' });
+  cash.dispatch({ type: 'JOIN', id: 'alex', name: 'Alex' });
+  cash.dispatch({ type: 'JOIN', id: 'sam', name: 'Sam' });
+  const ready = land(cash, cash.dispatch({ type: 'START' }));
+  const lost = cash.dispatch({ type: 'TIMEOUT', token: ready.state.token });
+  assert.equal(lost.state.phase, 'result');
+  assert.match(lost.state.message, /ran out of time/);
+  const next = cash.dispatch(lost.effects[0].action);
+  assert.equal(next.state.turn, 1);
+  assert.equal(next.state.phase, 'spinning');
 });
 
 test('the leaderboard ranks by total points, then puzzles solved', () => {
@@ -171,6 +227,7 @@ test('the overlay state never includes the unsolved puzzle', async () => {
     assert.equal(host.phrase, 'ZXQ PLANE');
     assert.equal(overlay.players[0].name, 'Alex');
     assert.equal(overlay.phase, 'spinning');
+    assert.equal(overlay.clockMs, null);
   } finally {
     await close();
   }

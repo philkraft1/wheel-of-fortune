@@ -8,7 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/overlay.css?v=4">
+  <link rel="stylesheet" href="/overlay.css?v=14">
 </head>
 <body>
   <main class="stage" id="stage">
@@ -66,9 +66,15 @@
       <p id="prize" class="prize"></p>
       <p class="help">
         <span class="cmd" data-cmd="join">/join</span>
+        <span class="cmd" data-cmd="spin">/spin</span>
         <span class="cmd" data-cmd="guess">/guess S</span>
-        <span class="cmd" data-cmd="solve">/aws-networking your answer</span>
+        <span class="cmd" data-cmd="solve">/solve [your answer] to solve the puzzle</span>
       </p>
+      <div id="turn-indicator" class="turn-indicator" hidden>
+        <div class="indicator-photo" id="indicator-photo"></div>
+        <strong id="indicator-name"></strong>
+        <b id="indicator-time">20</b>
+      </div>
     </header>
 
     <section class="wheel-wrap" aria-hidden="false">
@@ -85,13 +91,14 @@
 
     <div class="status-row">
       <p id="status" class="status">Type /join in chat to play</p>
-      <div class="clock" id="clock-wrap" hidden>
-        <span id="clock">20</span>
-        <i id="clock-bar"></i>
-      </div>
     </div>
 
     <section class="board-wrap">
+      <div class="board-clock" id="clock-wrap" hidden>
+        <strong id="clock">20</strong>
+        <span>seconds left</span>
+        <i id="clock-bar"></i>
+      </div>
       <div id="board" class="board"></div>
       <div id="vowels" class="vowels"></div>
       <p id="called" class="called">No consonants called yet</p>
@@ -109,6 +116,6 @@
     </div>
     <div id="confetti" class="confetti"></div>
   </main>
-  <script src="/overlay.js?v=5"></script>
+  <script src="/overlay.js?v=14"></script>
 </body>
 </html>
