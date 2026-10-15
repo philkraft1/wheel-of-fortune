@@ -40,6 +40,19 @@ source.addEventListener('state', (event) => {
   render(JSON.parse(event.data));
 });
 
+async function pull() {
+  try {
+    const response = await fetch('/api/state?role=overlay', { cache: 'no-store' });
+    if (!response.ok) return;
+    render(await response.json());
+  } catch {
+    /* The next poll tries again if the link source drops the live stream. */
+  }
+}
+
+pull();
+setInterval(pull, 700);
+
 function render(next) {
   const sig = JSON.stringify(next);
   if (sig === signature) return;

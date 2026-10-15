@@ -84,9 +84,14 @@ export function createApp() {
   function profilePicture(user) {
     if (!user || typeof user !== 'object') return '';
     if (typeof user.profilePictureUrl === 'string') return user.profilePictureUrl;
-    const list = user.profilePicture?.url || user.profilePicture?.urls || user.avatarLarge?.urlList;
-    if (!Array.isArray(list)) return '';
-    return list.find((item) => typeof item === 'string' && item.startsWith('https://')) || '';
+    const models = [user.profilePicture, user.avatarLarge, user.avatarMedium, user.avatarThumb];
+    for (const model of models) {
+      const list = model?.url || model?.urls || model?.urlList;
+      if (!Array.isArray(list)) continue;
+      const url = list.find((item) => typeof item === 'string' && item.startsWith('https://'));
+      if (url) return url;
+    }
+    return '';
   }
 
   function handleComment({ id, name, comment, avatar }) {
@@ -138,12 +143,12 @@ export function createApp() {
     broadcast();
     try {
       const { TikTokLiveConnection, WebcastEvent, ControlEvent } = await import('tiktok-live-connector');
-      const next = new TikTokLiveConnection(uniqueId);
+      const next = new TikTokLiveConnection(uniqueId, {});
       next.on(WebcastEvent.CHAT, (data) => {
         handleComment({
-          id: data?.user?.uniqueId || 'viewer',
-          name: data?.user?.nickname || data?.user?.uniqueId || 'Viewer',
-          comment: data?.comment || '',
+          id: data?.user?.uniqueId || data?.user?.displayId || data?.user?.id || 'viewer',
+          name: data?.user?.nickname || data?.user?.displayId || data?.user?.uniqueId || 'Viewer',
+          comment: data?.content || data?.comment || '',
           avatar: profilePicture(data?.user),
         });
       });
