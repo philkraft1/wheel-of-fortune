@@ -252,9 +252,23 @@ export function createApp() {
     }
   }
 
+  function isLocal(req) {
+    const host = String(req.headers.host || '').split(':')[0].replace(/^\[|\]$/g, '').toLowerCase();
+    return host === '127.0.0.1' || host === 'localhost' || host === '::1';
+  }
+
   const server = http.createServer(async (req, res) => {
     try {
       const url = new URL(req.url || '/', 'http://127.0.0.1');
+      const local = isLocal(req);
+      const hostOnly = url.pathname === '/host'
+        || url.pathname === '/api/host'
+        || (url.pathname === '/api/state' && url.searchParams.get('role') === 'host')
+        || (url.pathname === '/events' && url.searchParams.get('role') === 'host');
+      if (hostOnly && !local) {
+        json(res, 404, { ok: false, error: 'Not found' });
+        return;
+      }
       if (req.method === 'GET' && url.pathname === '/api/health') {
         json(res, 200, { ok: true, name: 'Wheel of Fortune' });
         return;
